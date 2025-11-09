@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>G.R.O.W.T.H. — Login</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --accent:#2b8aef;
+      --glass: rgba(255,255,255,0.14);
+      --glass-2: rgba(255,255,255,0.08);
+      --text:#ffffff;
+      --muted: rgba(255,255,255,0.85);
+      --card-radius:14px;
+    }
+
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:#111;}
+
+    /* full-screen background image */
+    .bg {
+      position:fixed;inset:0;background-image:url('4.png');
+      background-size:cover;background-position:center;
+      filter:brightness(0.55) saturate(0.95);z-index:0;
+    }
+
+    /* gradient overlay */
+    .overlay{position:fixed;inset:0;background:linear-gradient(180deg,rgba(10,10,10,0.25),rgba(0,0,0,0.6));z-index:1}
+
+    .page{
+      position:relative;z-index:2;min-height:100%;
+      display:flex;align-items:center;justify-content:center;padding:24px;
+    }
+
+    .container{width:100%;max-width:420px;margin:auto;color:var(--text);}
+
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+
+    .logo{
+      width:56px;height:56px;border-radius:10px;
+      background:var(--glass-2);
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;
+      box-shadow:0 6px 18px rgba(0,0,0,0.35);
+    }
+
+    .logo img{
+      width:100%;height:100%;object-fit:contain;
+    }
+
+    .brand h1{font-size:18px;margin:0;font-family:Montserrat,Inter,sans-serif;}
+    .brand p{margin:0;font-size:13px;opacity:0.9;}
+
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02));
+      border-radius:var(--card-radius);
+      padding:22px;
+      backdrop-filter:blur(8px);
+      box-shadow:0 10px 30px rgba(2,6,23,0.6);
+    }
+
+    .field{margin-bottom:12px;}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+    input[type='email'],input[type='password']{
+      width:100%;padding:12px;border-radius:10px;border:none;
+      background:var(--glass-2);color:var(--text);outline:none;font-size:15px;
+    }
+
+    .actions{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:10px;}
+    button.primary{
+      background:var(--accent);border:none;color:#fff;
+      padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;
+    }
+    button.ghost{
+      background:transparent;border:1px solid rgba(255,255,255,0.12);
+      color:var(--text);padding:10px 12px;border-radius:10px;cursor:pointer;
+    }
+
+    .status{margin-top:12px;font-size:13px;color:var(--muted);min-height:18px;}
+    .error{color:#ff7b7b;}
+    .small{font-size:13px;opacity:0.9;}
+    .footer{margin-top:16px;text-align:center;color:rgba(255,255,255,0.7);font-size:13px;}
+
+    @media (max-width:420px){.container{padding:6px}.card{padding:16px}}
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden></div>
+  <div class="overlay" aria-hidden></div>
+
+  <main class="page">
+    <div class="container">
+      <div class="brand">
+        <div class="logo"><img src="icon.png" alt="G.R.O.W.T.H. Logo"></div>
+        <div>
+          <h1>G.R.O.W.T.H.</h1>
+          <p class="small">Growth Regulation and Observation With Technology for Healthy-Smart Plant Care</p>
+        </div>
+      </div>
+
+      <section class="card" aria-labelledby="loginTitle">
+        <h2 id="loginTitle" style="margin:0 0 12px 0;font-size:16px">Welcome back</h2>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="you@example.com" autocomplete="username">
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+
+        <div class="actions">
+          <button id="signinBtn" class="primary">Sign In</button>
+          <button id="signupBtn" class="ghost">Sign Up</button>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+          <button id="resetBtn" class="ghost" style="padding:8px 10px;font-size:13px">Forgot password?</button>
+          <div id="busy" class="small" style="opacity:0.9">&nbsp;</div>
+        </div>
+
+        <div id="status" class="status" role="status"></div>
+      </section>
+
+      <div class="footer">Designed for mobile • Responsive • Minimal</div>
+    </div>
+  </main>
+
+  <script>
+    // Simple local auth (INSECURE) — checks hardcoded credentials
+    const emailEl = document.getElementById('email');
+    const passEl = document.getElementById('password');
+    const signInBtn = document.getElementById('signinBtn');
+    const signUpBtn = document.getElementById('signupBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const statusEl = document.getElementById('status');
+    const busyEl = document.getElementById('busy');
+
+    function setBusy(v){ busyEl.textContent = v ? 'Processing…' : '' }
+    function setStatus(msg, isError=false){ statusEl.textContent = msg; statusEl.className = isError ? 'status error' : 'status'; }
+
+    const LOCAL_USER = 'user1';
+    const LOCAL_PASS = 'admin';
+
+    signInBtn.addEventListener('click', async () => {
+      setBusy(true); setStatus('');
+      const username = emailEl.value.trim();
+      const password = passEl.value;
+      if(!username || !password){ setStatus('Enter username and password', true); setBusy(false); return; }
+      if(username === LOCAL_USER && password === LOCAL_PASS){
+        setStatus('Signed in — redirecting…');
+        setTimeout(()=>{ window.location.href = 'index.html'; }, 700);
+      } else {
+        setStatus('Invalid username or password', true);
+      }
+      setBusy(false);
+    });
+
+    signUpBtn.addEventListener('click', () => {
+      setStatus('Sign up is disabled in this demo', true);
+    });
+
+    resetBtn.addEventListener('click', () => {
+      setStatus('Password reset is disabled in this demo', true);
+    });
+
+    emailEl.focus();
+  </script>
+</body>
+</html>

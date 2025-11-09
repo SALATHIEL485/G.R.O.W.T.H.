@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TANIM-ASHS Dashboard</title>
+</head>
+<body>
+  <h1>TANIM-ASHS Dashboard</h1>
+
+  <div>
+    <label>Lux: <input type="number" id="luxInput"></label>
+    <label>Humidity: <input type="number" id="humidityInput"></label>
+    <button id="sendBtn">Send to Firebase</button>
+  </div>
+
+  <h2>Realtime Data</h2>
+  <p>Lux: <span id="luxValue">0</span></p>
+  <p>Humidity: <span id="humidityValue">0</span></p>
+
+  <script type="module">
+    // ===== Import Firebase functions =====
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+
+    // ===== Your Firebase config =====
+    const firebaseConfig = {
+      apiKey: "AIzaSyD21J-omPyBAXvjDFPANzpFg4a3AWchbFQ",
+      authDomain: "tanim-ashs.firebaseapp.com",
+      databaseURL: "https://tanim-ashs-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "tanim-ashs",
+      storageBucket: "tanim-ashs.firebasestorage.app",
+      messagingSenderId: "459105073919",
+      appId: "1:459105073919:web:ab6cb0346d87233d79aaca",
+      measurementId: "G-Q16E4V78WQ"
+    };
+
+    // ===== Initialize Firebase =====
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // ===== DOM Elements =====
+    const luxInput = document.getElementById('luxInput');
+    const humidityInput = document.getElementById('humidityInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const luxValue = document.getElementById('luxValue');
+    const humidityValue = document.getElementById('humidityValue');
+
+    // ===== Send values to Firebase =====
+    sendBtn.addEventListener('click', () => {
+      const lux = parseFloat(luxInput.value);
+      const humidity = parseFloat(humidityInput.value);
+
+      update(ref(db, 'TANIM-ASHS'), { Lux: lux, Humidity: humidity })
+        .then(() => alert('Data sent!'))
+        .catch(err => alert('Error: ' + err));
+    });
+
+    // ===== Listen for realtime updates =====
+    onValue(ref(db, 'TANIM-ASHS'), snapshot => {
+      const data = snapshot.val();
+      if (data) {
+        luxValue.textContent = data.Lux;
+        humidityValue.textContent = data.Humidity;
+      }
+    });
+  </script>
+</body>
+</html>

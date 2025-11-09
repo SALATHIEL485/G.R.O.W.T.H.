@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>G.R.O.W.T.H. — Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --accent:#2b8aef;
+      --glass: rgba(255,255,255,0.14);
+      --glass-2: rgba(255,255,255,0.08);
+      --text:#ffffff;
+      --muted: rgba(255,255,255,0.85);
+      --card-radius:14px;
+    }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:#111;}
+    .bg{position:fixed;inset:0;background-image:url('4.png');background-size:cover;background-position:center;filter:brightness(0.55) saturate(0.95);z-index:0;}
+    .overlay{position:fixed;inset:0;background:linear-gradient(180deg,rgba(10,10,10,0.25),rgba(0,0,0,0.6));z-index:1}
+    .page{position:relative;z-index:2;min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px;}
+    .container{width:100%;max-width:420px;margin:auto;color:var(--text);}
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+    .logo{width:56px;height:56px;border-radius:10px;background:var(--glass-2);display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,0.35);}
+    .logo img{width:100%;height:100%;object-fit:contain;}
+    .brand h1{font-size:18px;margin:0;font-family:Montserrat,Inter,sans-serif;}
+    .brand p{margin:0;font-size:13px;opacity:0.9;}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02));border-radius:var(--card-radius);padding:22px;backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(2,6,23,0.6);}
+    .field{margin-bottom:12px;}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+    input{width:100%;padding:12px;border-radius:10px;border:none;background:var(--glass-2);color:var(--text);outline:none;font-size:15px;}
+    .actions{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:10px;}
+    button.primary{background:var(--accent);border:none;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600;}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.12);color:var(--text);padding:10px 12px;border-radius:10px;cursor:pointer;}
+    .status{margin-top:12px;font-size:13px;color:var(--muted);min-height:18px;}
+    .error{color:#ff7b7b;}
+    .footer{margin-top:16px;text-align:center;color:rgba(255,255,255,0.7);font-size:13px;}
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden></div>
+  <div class="overlay" aria-hidden></div>
+
+  <main class="page">
+    <div class="container">
+      <div class="brand">
+        <div class="logo"><img src="icon.png" alt="G.R.O.W.T.H. Logo"></div>
+        <div>
+          <h1>G.R.O.W.T.H.</h1>
+          <p class="small">Growth Regulation and Observation With Technology for Healthy-Smart Plant Care</p>
+        </div>
+      </div>
+
+      <section class="card">
+        <h2 style="margin:0 0 12px 0;font-size:16px">Welcome back</h2>
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" type="text" placeholder="User67">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="••••••••">
+        </div>
+        <div class="actions">
+          <button id="signinBtn" class="primary">Sign In</button>
+          <button id="resetBtn" class="ghost">Forgot password?</button>
+        </div>
+        <div id="status" class="status" role="status"></div>
+      </section>
+
+      <div class="footer">Designed for mobile • Responsive • Minimal</div>
+    </div>
+  </main>
+
+  <!-- Firebase Login -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD21J-omPyBAXvjDFPANzpFg4a3AWchbFQ",
+      authDomain: "tanim-ashs.firebaseapp.com",
+      databaseURL: "https://tanim-ashs-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "tanim-ashs",
+      storageBucket: "tanim-ashs.firebasestorage.app",
+      messagingSenderId: "459105073919",
+      appId: "1:459105073919:web:ab6cb0346d87233d79aaca",
+      measurementId: "G-Q16E4V78WQ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const usernameEl = document.getElementById("username");
+    const passwordEl = document.getElementById("password");
+    const statusEl = document.getElementById("status");
+    const signinBtn = document.getElementById("signinBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    function setStatus(msg, isError=false){ 
+      statusEl.textContent = msg; 
+      statusEl.className = isError ? 'status error' : 'status'; 
+    }
+
+    signinBtn.addEventListener("click", async () => {
+      const username = usernameEl.value.trim();
+      const password = passwordEl.value.trim();
+      if(!username || !password) return setStatus("Enter username and password", true);
+
+      const dbRef = ref(db);
+      const snapshot = await get(child(dbRef, `/TANIM-ASHS/users/${username}`));
+      if(snapshot.exists()){
+        const data = snapshot.val();
+        if(data.password === password){
+          setStatus("Signed in — redirecting…");
+          setTimeout(()=>window.location.href="index.html",700);
+        } else setStatus("Incorrect password", true);
+      } else {
+        setStatus("User not found", true);
+      }
+    });
+
+    resetBtn.addEventListener("click", ()=>window.location.href="forgotpass.html");
+  </script>
+</body>
+</html>

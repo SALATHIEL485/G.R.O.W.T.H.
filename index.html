@@ -112,7 +112,7 @@
         const data = snapshot.val();
         if(data.password === password){
           setStatus("Signed in — redirecting…");
-          setTimeout(()=>window.location.href="index.html",700);
+          setTimeout(()=>window.location.href="homescreen.html",700);
         } else setStatus("Incorrect password", true);
       } else {
         setStatus("User not found", true);
@@ -123,4 +123,5 @@
   </script>
 </body>
 </html>
+
 

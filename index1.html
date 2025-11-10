@@ -126,20 +126,43 @@
   /* 🔹 Mobile Optimization */
   @media (max-width: 768px) {
     body { padding: 3vh 3vw; }
-    .dashboard { width: 85%; }
+    .dashboard { width: 95%; }
+
+    /* Stack top charts but keep control buttons side-by-side */
     .card.large,
     .card.full {
       width: 100%;
       height: 160px;
     }
+
+    .row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      width: 100%;
+    }
+
+    /* Force both switches to stay side by side */
+    .row:nth-of-type(3) .card.small {
+      width: 47%;
+      min-width: 150px;
+      height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
     .card.small {
       width: 48%;
       height: 70px;
     }
+
     .card.square {
       width: 45%;
       height: 85px;
     }
+
     h1 { font-size: 1.3rem; }
     h2 { font-size: 0.9rem; }
   }
@@ -205,9 +228,9 @@
     </div>
   </div>
 
-  <!-- Firebase + Charts (same as before) -->
+  <!-- Firebase + Charts (same logic as before) -->
   <script type="module">
-    /* your existing Firebase + Chart.js code here — unchanged */
+    /* 🔹 Reuse your existing Firebase + Chart.js logic here — unchanged */
   </script>
 </body>
 </html>

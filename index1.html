@@ -5,320 +5,228 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
 <title>G.R.O.W.T.H. Smart Planter Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script type="module">
-  // ✅ Firebase Imports
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-
-  // ✅ Firebase Config
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  // ✅ Chart.js Setup
-  let barChart = new Chart(document.getElementById("barChart"), {
-    type: "bar",
-    data: {
-      labels: ["2 Days Ago", "Yesterday", "Today"],
-      datasets: [{
-        label: "Plant Health (%)",
-        data: [0, 0, 0],
-        backgroundColor: "rgba(0, 255, 128, 0.7)"
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: { y: { min: 0, max: 100 } },
-      plugins: { legend: { display: false } }
-    }
-  });
-
-  let pieChart = new Chart(document.getElementById("pieChart"), {
-    type: "pie",
-    data: {
-      labels: ["N", "P", "K"],
-      datasets: [{
-        data: [0, 0, 0],
-        backgroundColor: ["#4CAF50", "#FFEB3B", "#FF5722"]
-      }]
-    },
-    options: { responsive: true }
-  });
-
-  // ✅ Live Firebase Sync
-  const plantRef = ref(db, "TANIM-ASHS/sensor");
-  const idealRef = ref(db, "TANIM-ASHS/ideals");
-  const healthRef = ref(db, "TANIM-ASHS/health");
-
-  let ideals = {};
-
-  onValue(idealRef, (snap) => {
-    ideals = snap.val() || {};
-  });
-
-  onValue(plantRef, (snap) => {
-    const d = snap.val();
-    if (!d) return;
-
-    document.getElementById("tempVal").innerText = `${d.temp} °C`;
-    document.getElementById("humVal").innerText = `${d.hum}%`;
-    document.getElementById("condVal").innerText = `${d.cond}%`;
-    document.getElementById("luxVal").innerText = `${d.lux}%`;
-    document.getElementById("moistVal").innerText = `${d.moist}%`;
-    document.getElementById("phVal").innerText = `${d.ph}`;
-
-    // Compute errors
-    const errors = {};
-    for (const key in ideals) {
-      const ideal = ideals[key];
-      const actual = d[key];
-      if (ideal && actual !== undefined) {
-        errors[key] = Math.abs(((actual - ideal) / ideal) * 100).toFixed(1);
-      }
-    }
-
-    // Update error list
-    let errText = "";
-    for (const [key, val] of Object.entries(errors)) {
-      errText += `${key.toUpperCase()}: ${val}%\n`;
-    }
-    document.getElementById("errorList").innerText = errText;
-
-    // Update pie chart (NPK)
-    pieChart.data.datasets[0].data = [d.N, d.P, d.K];
-    pieChart.update();
-
-    // Show NPK error
-    const npkError = Math.abs((d.N + d.P + d.K) / 3 - 100).toFixed(1);
-    document.getElementById("npkError").innerText = `Error from ideal: ${npkError}%`;
-  });
-
-  // ✅ Health Bar Chart
-  onValue(healthRef, (snap) => {
-    const h = snap.val();
-    if (!h) return;
-    const avg = [
-      h["2daysago"] || 0,
-      h["yesterday"] || 0,
-      h["today"] || 0
-    ];
-    barChart.data.datasets[0].data = avg;
-    barChart.update();
-  });
-
-  // ✅ Pump / Mist Control
-  const pumpRef = ref(db, "TANIM-ASHS/controls/pump");
-  const mistRef = ref(db, "TANIM-ASHS/controls/mist");
-
-  const pumpToggle = document.getElementById("pumpToggle");
-  const mistToggle = document.getElementById("mistToggle");
-
-  onValue(pumpRef, (snap) => { pumpToggle.checked = snap.val() === 1; });
-  onValue(mistRef, (snap) => { mistToggle.checked = snap.val() === 1; });
-
-  pumpToggle.addEventListener("change", () => {
-    update(pumpRef, { value: pumpToggle.checked ? 1 : 0 });
-  });
-
-  mistToggle.addEventListener("change", () => {
-    update(mistRef, { value: mistToggle.checked ? 1 : 0 });
-  });
-</script>
 
 <style>
   body {
     font-family: "Poppins", sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 0;
-    padding: 2vh 5vw;
     background: url("4.png") no-repeat center center fixed;
     background-size: cover;
-    color: #fff;
-  }
-
-  h1, h2 {
-    text-align: center;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.4);
-    margin: 0.2em 0;
-  }
-
-  h1 { font-size: 1.6rem; }
-  h2 { font-size: 1rem; font-weight: 500; }
-
-  .dashboard {
+    margin: 0;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 90%;
-    max-width: 600px;
-    gap: 15px;
+    gap: 20px;
+    min-height: 100vh;
+    transition: all 0.3s ease;
   }
 
-  .row {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    width: 100%;
-  }
+  h1 { color:#fff;text-align:center;font-size:1.8em;text-shadow:0 2px 4px rgba(0,0,0,0.4); }
 
   .card {
-    border: 2px solid rgba(255,255,255,0.8);
-    border-radius: 15px;
-    background-color: rgba(255,255,255,0.15);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    backdrop-filter: blur(6px);
+    backdrop-filter: blur(14px) brightness(1.1);
+    background: rgba(255,255,255,0.25);
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
     color: #fff;
-    transition: transform 0.2s ease;
+    width: 100%;
+    transition: transform 0.3s ease;
+  }
+  .card:hover { transform: translateY(-5px); }
+
+  .flex-row {
+    display:flex;flex-wrap:wrap;gap:20px;justify-content:center;width:100%;max-width:1000px;
   }
 
-  .card:active { transform: scale(0.97); }
-  .card.large { width: 45%; height: 170px; }
-  .card.full { width: 95%; height: 150px; }
-  .card.small { width: 45%; height: 70px; }
-  .card.square { width: 28%; height: 90px; }
-
-  canvas {
-    width: 90% !important;
-    aspect-ratio: 1 / 1.1;
-  }
-
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 56px;
-    height: 30px;
-  }
-
-  .switch input { display: none; }
-
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-color: rgba(255,255,255,0.3);
-    transition: 0.3s;
-    border-radius: 34px;
-  }
-
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 22px;
-    width: 22px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: 0.3s;
-    border-radius: 50%;
-  }
-
-  input.pump:checked + .slider { background-color: #2196f3; }
-  input.mist:checked + .slider { background-color: #f4d03f; }
-  input:checked + .slider:before { transform: translateX(26px); }
-
-  /* ✅ Mobile Optimization Fix */
-  @media (max-width: 768px) {
-    body { padding: 3vh 3vw; }
-    .dashboard { width: 95%; }
-
-    .card.large,
-    .card.full {
-      width: 100%;
-      height: 160px;
-    }
-
-    /* Keep switches side-by-side */
-    .row:nth-of-type(3) {
-      justify-content: space-between;
-    }
-    .row:nth-of-type(3) .card.small {
-      flex: 1;
-      min-width: 150px;
-      height: 80px;
-      margin: 0 5px;
-    }
-
-    .card.square {
-      width: 45%;
-      height: 85px;
-    }
-
-    h1 { font-size: 1.3rem; }
-    h2 { font-size: 0.9rem; }
-  }
+  canvas {width:100%;height:220px;border-radius:10px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.05);}
+  #errorList {white-space:pre-line;font-size:0.9em;}
+  .switch-row {display:flex;gap:30px;justify-content:center;flex-wrap:wrap;width:100%;max-width:600px;}
+  .switch-block {display:flex;align-items:center;gap:10px;backdrop-filter:blur(8px);background:rgba(255,255,255,0.2);border-radius:16px;padding:10px 18px;box-shadow:0 2px 10px rgba(0,0,0,0.2);}
+  .switch-label {color:#fff;font-weight:bold;min-width:120px;}
+  .switch {position:relative;width:56px;height:30px;}
+  .switch input {display:none;}
+  .slider {position:absolute;top:0;left:0;right:0;bottom:0;background-color:rgba(255,255,255,0.3);border-radius:34px;transition:0.3s;}
+  .slider:before {content:"";position:absolute;height:22px;width:22px;left:4px;bottom:4px;background:white;border-radius:50%;transition:0.3s;}
+  input.pump:checked + .slider {background-color:#2196f3;}
+  input.mist:checked + .slider {background-color:#f4d03f;}
+  input:checked + .slider:before {transform:translateX(26px);}
+  .grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;width:100%;max-width:800px;}
+  .icon {font-size:2em;margin-bottom:8px;}
+  .reading-val {font-weight:bold;transition:color 0.3s ease;}
+  #infoBar {color:#fff;font-size:0.95em;text-shadow:0 1px 3px rgba(0,0,0,0.3);margin-bottom:5px;}
+  button {background:rgba(255,255,255,0.3);color:#fff;border:none;border-radius:10px;padding:8px 14px;cursor:pointer;transition:background 0.3s;}
+  button:hover {background:rgba(255,255,255,0.5);}
 </style>
 </head>
 
 <body>
-  <h1>G.R.O.W.T.H.</h1>
-  <h2>Smart Planter Dashboard</h2>
+  <h1>🌱 G.R.O.W.T.H. Smart Planter Dashboard</h1>
+  <div id="infoBar">Loading weather and time...</div>
 
-  <div class="dashboard">
-    <div class="row">
-      <div class="card large">
-        <h3>Plant Health (Last 3 Days)</h3>
-        <canvas id="barChart"></canvas>
-      </div>
-      <div class="card large">
-        <h3>NPK Ratio Pie Graph</h3>
-        <canvas id="pieChart"></canvas>
-        <div id="npkError">Error from ideal: --%</div>
-      </div>
+  <div class="flex-row">
+    <div class="card" style="flex:1;min-width:300px;">
+      <h3>Plant Health (Last 3 Days)</h3>
+      <canvas id="barChart"></canvas>
     </div>
-
-    <div class="row">
-      <div class="card full">
-        <h3>Individual Variable Errors</h3>
-        <div id="errorList" style="white-space: pre-line;">--</div>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="card small">
-        <span>Switch Pump</span>
-        <label class="switch">
-          <input id="pumpToggle" class="pump" type="checkbox">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="card small">
-        <span>Switch Fertilizer</span>
-        <label class="switch">
-          <input id="mistToggle" class="mist" type="checkbox">
-          <span class="slider"></span>
-        </label>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="card square"><div>🌡️</div><div id="tempVal">-- °C</div></div>
-      <div class="card square"><div>💧</div><div id="humVal">-- %</div></div>
-    </div>
-    <div class="row">
-      <div class="card square"><div>⚡</div><div id="condVal">-- %</div></div>
-      <div class="card square"><div>☀️</div><div id="luxVal">-- %</div></div>
-    </div>
-    <div class="row">
-      <div class="card square"><div>💦</div><div id="moistVal">-- %</div></div>
-      <div class="card square"><div>🌈</div><div id="phVal">--</div></div>
+    <div class="card" style="flex:1;min-width:300px;">
+      <h3>NPK Ratio</h3>
+      <canvas id="pieChart"></canvas>
+      <div id="npkError">Error from ideal: --%</div>
     </div>
   </div>
+
+  <div class="card" style="max-width:800px;">
+    <h3>Individual Variable Errors</h3>
+    <div id="errorList"></div>
+    <button id="exportBtn">📊 Export Daily Log</button>
+  </div>
+
+  <div class="switch-row">
+    <div class="switch-block">
+      <span class="switch-label">Switch Pump</span>
+      <label class="switch"><input id="pumpToggle" class="pump" type="checkbox"/><span class="slider"></span></label>
+    </div>
+    <div class="switch-block">
+      <span class="switch-label">Switch Fertilizer</span>
+      <label class="switch"><input id="mistToggle" class="mist" type="checkbox"/><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="grid" id="readingsGrid">
+    <div class="card"><div class="icon">🌡️</div><div id="tempval" class="reading-val">-- °C</div><div>Temperature</div></div>
+    <div class="card"><div class="icon">💧</div><div id="humidityval" class="reading-val">-- %</div><div>Humidity</div></div>
+    <div class="card"><div class="icon">⚡</div><div id="conductivityval" class="reading-val">--</div><div>Conductivity</div></div>
+    <div class="card"><div class="icon">☀️</div><div id="luxval" class="reading-val">--</div><div>Light</div></div>
+    <div class="card"><div class="icon">💦</div><div id="moistureval" class="reading-val">-- %</div><div>Soil Moisture</div></div>
+    <div class="card"><div class="icon">🌈</div><div id="phval" class="reading-val">--</div><div>pH Level</div></div>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, query, limitToLast } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD21J-omPyBAXvjDFPANzpFg4a3AWchbFQ",
+  authDomain: "tanim-ashs.firebaseapp.com",
+  databaseURL: "https://tanim-ashs-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tanim-ashs",
+  storageBucket: "tanim-ashs.firebasestorage.app",
+  messagingSenderId: "459105073919",
+  appId: "1:459105073919:web:ab6cb0346d87233d79aaca",
+  measurementId: "G-Q16E4V78WQ"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const readingsRef = query(ref(db, "/TANIM-ASHS/readings"), limitToLast(15));
+const idealsRef = ref(db, "/TANIM-ASHS/ideals");
+const pumpRef = ref(db, "/TANIM-ASHS/bools/pump");
+const mistRef = ref(db, "/TANIM-ASHS/bools/mist");
+
+const barChart = new Chart(document.getElementById("barChart"), {
+  type:"bar",
+  data:{labels:["2 Days Ago","Yesterday","Today"],datasets:[{label:"Health (%)",data:[0,0,0],backgroundColor:"#a3f7bf",borderWidth:2}]},
+  options:{responsive:true,scales:{y:{beginAtZero:true,max:100,ticks:{color:"#fff"},grid:{color:"rgba(255,255,255,0.2)"}},x:{ticks:{color:"#fff"}}},plugins:{legend:{labels:{color:"#fff"}}}}
+});
+
+const pieChart = new Chart(document.getElementById("pieChart"), {
+  type:"pie",
+  data:{labels:["N","P","K"],datasets:[{data:[0,0,0],backgroundColor:["#0077b6","#00b4d8","#90e0ef"],borderColor:"#fff",borderWidth:2}]},
+  options:{responsive:true,plugins:{legend:{labels:{color:"#fff"}}}}
+});
+
+let ideals={}, lastDailyLogs=[];
+
+onValue(idealsRef,snap=>ideals=snap.val()||{});
+
+onValue(readingsRef,snapshot=>{
+  const data=snapshot.val();
+  console.log("📥 Data received:",data);
+  if(!data||typeof data!=="object")return;
+
+  const now=new Date();
+  const today=[],yesterday=[],twoDaysAgo=[];
+  let latest=null;
+
+  Object.keys(data).forEach(id=>{
+    const e=data[id];
+    if(!e)return;
+    const ts=new Date(e.timestamp||Date.now());
+    const diffDays=Math.floor((now-ts)/(1000*60*60*24));
+    if(diffDays===0)today.push(e);
+    else if(diffDays===1)yesterday.push(e);
+    else if(diffDays===2)twoDaysAgo.push(e);
+    latest=e;
+  });
+
+  if(!latest||!ideals.Temp)return;
+  const weights={Temp:0.2,Humidity:0.15,Conductivity:0.15,Lux:0.15,PH:0.15,Moisture:0.2};
+
+  function computeHealth(entry){
+    let h=0;
+    for(let k in weights){
+      const val=parseFloat(entry[k])||0;
+      const ideal=parseFloat(ideals[k])||1;
+      const err=Math.abs((val-ideal)/ideal)*100;
+      h+=Math.max(0,100-err)*weights[k];
+    }
+    return h;
+  }
+  const avgH=arr=>arr.length?arr.map(computeHealth).reduce((a,b)=>a+b,0)/arr.length:0;
+  barChart.data.datasets[0].data=[avgH(twoDaysAgo),avgH(yesterday),avgH(today)];
+  barChart.update();
+
+  const {Temp,Humidity,Conductivity,Lux,Moisture,PH,N,P,K}=latest;
+  const readings={Temp,Humidity,Conductivity,Lux,Moisture,PH};
+  for(let k in readings){
+    const el=document.getElementById(k.toLowerCase()+"val");
+    el.textContent=readings[k]+(k==="PH"?"":k==="Temp"?" °C":" %");
+    const diff=Math.abs(readings[k]-ideals[k]);
+    el.style.color=diff>(ideals[k]*0.2)?"#ff6b6b":diff>(ideals[k]*0.1)?"#ffd93d":"#a3f7bf";
+  }
+
+  pieChart.data.datasets[0].data=[N,P,K];
+  pieChart.update();
+
+  let errTxt="";
+  for(let k in weights){
+    const val=parseFloat(readings[k])||0,ideal=parseFloat(ideals[k])||1;
+    errTxt+=`• ${k}: ${((Math.abs(val-ideal)/ideal)*100).toFixed(1)}% off\n`;
+  }
+  document.getElementById("errorList").textContent=errTxt;
+  lastDailyLogs.push({...latest,timestamp:new Date().toLocaleString()});
+});
+
+onValue(pumpRef,s=>document.getElementById("pumpToggle").checked=s.val());
+onValue(mistRef,s=>document.getElementById("mistToggle").checked=s.val());
+document.getElementById("pumpToggle").onchange=e=>set(pumpRef,e.target.checked);
+document.getElementById("mistToggle").onchange=e=>set(mistRef,e.target.checked);
+
+document.getElementById("exportBtn").onclick=()=>{
+  const rows=[["Timestamp","Temp","Humidity","Conductivity","Lux","Moisture","PH","N","P","K"]];
+  lastDailyLogs.forEach(r=>rows.push(Object.values(r)));
+  const csv=rows.map(r=>r.join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="plant_log.csv";
+  a.click();
+};
+
+async function updateInfoBar(){
+  const now=new Date().toLocaleString();
+  try{
+    const res=await fetch("https://api.open-meteo.com/v1/forecast?latitude=14.6&longitude=121.0&current=temperature_2m");
+    const json=await res.json();
+    document.getElementById("infoBar").textContent=`${now} | Weather: ${json.current.temperature_2m}°C`;
+  }catch{
+    document.getElementById("infoBar").textContent=now;
+  }
+}
+setInterval(updateInfoBar,60000);
+updateInfoBar();
+</script>
 </body>
 </html>

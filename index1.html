@@ -1,153 +1,275 @@
+<!-- 🪴 G.R.O.W.T.H. Smart Planter Dashboard (Optimized Layout v2) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>G.R.O.W.T.H. Smart Planter Dashboard</title>
-<style>
-  :root {
-    --card-bg: #ffffff;
-    --card-border: #222;
-    --shadow: rgba(0, 0, 0, 0.08);
-  }
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<style>
   body {
-    font-family: "Poppins", "Roboto", sans-serif;
-    background-color: #f3f4f6;
-    color: #111;
-    margin: 0;
-    padding: 0;
+    font-family: "Poppins", sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
-  }
-
-  header {
-    text-align: center;
-    margin-top: 15px;
-  }
-
-  header h1 {
-    font-size: 1.4rem;
     margin: 0;
-    letter-spacing: 1px;
+    padding: 20px 4%;
+    background: url("4.png") no-repeat center center fixed;
+    background-size: cover;
+    color: #fff;
   }
 
-  header h2 {
-    font-size: 1rem;
+  h1 {
+    text-align: center;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  }
+
+  h2 {
+    text-align: center;
     font-weight: 500;
-    margin: 5px 0 15px;
+    margin-top: 0;
   }
 
   .dashboard {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 95%;
-    max-width: 420px;
-    margin-bottom: 40px;
+    width: 100%;
+    max-width: 800px;
+    gap: 15px;
   }
 
   .row {
     display: flex;
     justify-content: center;
-    flex-wrap: wrap;
     gap: 10px;
+    flex-wrap: wrap;
     width: 100%;
   }
 
   .card {
-    background-color: var(--card-bg);
-    border: 1.5px solid var(--card-border);
+    border: 2px solid rgba(255,255,255,0.8);
     border-radius: 15px;
-    box-shadow: 0 2px 4px var(--shadow);
+    background-color: rgba(255,255,255,0.15);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    font-size: 0.95rem;
-    padding: 10px;
-    user-select: none;
-    transition: transform 0.2s ease;
+    backdrop-filter: blur(6px);
+    color: #fff;
   }
 
-  .card:active {
-    transform: scale(0.97);
-  }
+  .card.large { width: 48%; height: 200px; }
+  .card.full { width: 98%; height: 160px; }
+  .card.small { width: 46%; height: 70px; }
+  .card.square { width: 30%; height: 100px; font-size: 1rem; }
 
-  .card.large {
-    width: 100%;
-    height: 160px;
-  }
+  canvas { width: 90% !important; aspect-ratio: 1 / 1.1; }
 
-  .card.full {
-    width: 100%;
-    height: 130px;
+  /* Toggle switches */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 56px;
+    height: 30px;
   }
-
-  .card.small {
-    width: 48%;
-    height: 60px;
-    font-weight: 600;
-    background-color: #e9f5ff;
+  .switch input { display: none; }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(255,255,255,0.3);
+    transition: 0.3s;
+    border-radius: 34px;
   }
-
-  .card.square {
-    width: 30%;
-    height: 80px;
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
   }
+  input.pump:checked + .slider { background-color: #2196f3; }
+  input.mist:checked + .slider { background-color: #f4d03f; }
+  input:checked + .slider:before { transform: translateX(26px); }
 
-  /* Responsive fine-tuning */
-  @media (min-width: 480px) {
-    .card.large { width: 47%; height: 170px; }
-    .card.full { width: 100%; height: 140px; }
-    .card.small { width: 46%; height: 70px; }
-    .card.square { width: 28%; height: 90px; }
+  /* Responsive */
+  @media (max-width: 768px) {
+    .card.large, .card.full { width: 95%; height: 180px; }
+    .card.small { width: 44%; height: 70px; }
+    .card.square { width: 30%; height: 90px; }
   }
 </style>
 </head>
-<body>
 
-<header>
+<body>
   <h1>G.R.O.W.T.H.</h1>
   <h2>Smart Planter Dashboard</h2>
-</header>
 
-<div class="dashboard">
+  <div class="dashboard">
 
-  <!-- Top Row -->
-  <div class="row">
-    <div class="card large">plant health</div>
-    <div class="card large">ratio pie graph</div>
+    <!-- Top Row -->
+    <div class="row">
+      <div class="card large">
+        <h3>Plant Health (Last 3 Days)</h3>
+        <canvas id="barChart"></canvas>
+      </div>
+      <div class="card large">
+        <h3>NPK Ratio Pie Graph</h3>
+        <canvas id="pieChart"></canvas>
+        <div id="npkError">Error from ideal: --%</div>
+      </div>
+    </div>
+
+    <!-- Middle Row -->
+    <div class="row">
+      <div class="card full">
+        <h3>Individual Variable Errors</h3>
+        <div id="errorList" style="white-space: pre-line;">--</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="row">
+      <div class="card small">
+        <span>Switch Pump</span>
+        <label class="switch"><input id="pumpToggle" class="pump" type="checkbox"><span class="slider"></span></label>
+      </div>
+      <div class="card small">
+        <span>Switch Fertilizer</span>
+        <label class="switch"><input id="mistToggle" class="mist" type="checkbox"><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Sensor Grid (6 variables only) -->
+    <div class="row">
+      <div class="card square"><div>🌡️</div><div id="tempVal">-- °C</div></div>
+      <div class="card square"><div>💧</div><div id="humVal">-- %</div></div>
+      <div class="card square"><div>⚡</div><div id="condVal">-- %</div></div>
+    </div>
+    <div class="row">
+      <div class="card square"><div>☀️</div><div id="luxVal">-- %</div></div>
+      <div class="card square"><div>💦</div><div id="moistVal">-- %</div></div>
+      <div class="card square"><div>🌈</div><div id="phVal">--</div></div>
+    </div>
+
   </div>
 
-  <!-- Middle Row -->
-  <div class="row">
-    <div class="card full">individual errors</div>
-  </div>
+  <!-- Firebase + Chart.js (unchanged logic) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getDatabase, ref, onValue, set, query, limitToLast } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
 
-  <!-- Control Row -->
-  <div class="row">
-    <div class="card small">switch pump</div>
-    <div class="card small">switch fertilizer</div>
-  </div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD21J-omPyBAXvjDFPANzpFg4a3AWchbFQ",
+      authDomain: "tanim-ashs.firebaseapp.com",
+      databaseURL: "https://tanim-ashs-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "tanim-ashs",
+      storageBucket: "tanim-ashs.firebasestorage.app",
+      messagingSenderId: "459105073919",
+      appId: "1:459105073919:web:ab6cb0346d87233d79aaca",
+      measurementId: "G-Q16E4V78WQ"
+    };
 
-  <!-- Sensor Grid -->
-  <div class="row">
-    <div class="card square"></div>
-    <div class="card square"></div>
-    <div class="card square"></div>
-  </div>
-  <div class="row">
-    <div class="card square"></div>
-    <div class="card square"></div>
-  </div>
-  <div class="row">
-    <div class="card square"></div>
-    <div class="card square"></div>
-  </div>
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-</div>
+    const readingsRef = query(ref(db, "/TANIM-ASHS/readings"), limitToLast(15));
+    const idealsRef = ref(db, "/TANIM-ASHS/ideals");
+    const pumpRef = ref(db, "/TANIM-ASHS/bools/pump");
+    const mistRef = ref(db, "/TANIM-ASHS/bools/mist");
 
+    const barChart = new Chart(document.getElementById("barChart"), {
+      type: "bar",
+      data: { labels: ["2 Days Ago", "Yesterday", "Today"], datasets: [{ label: "Plant Health (%)", data: [0, 0, 0], backgroundColor: "#a3f7bf", borderColor: "#fff", borderWidth: 1 }] },
+      options: { responsive: true, scales: { y: { beginAtZero: true, max: 100, ticks: { color: "#fff" } }, x: { ticks: { color: "#fff" } } }, plugins: { legend: { labels: { color: "#fff" } } } }
+    });
+
+    const pieChart = new Chart(document.getElementById("pieChart"), {
+      type: "pie",
+      data: { labels: ["N", "P", "K"], datasets: [{ data: [0, 0, 0], backgroundColor: ["#0077b6", "#00b4d8", "#90e0ef"], borderColor: "#fff", borderWidth: 1 }] },
+      options: { responsive: true, plugins: { legend: { labels: { color: "#fff" } } } }
+    });
+
+    let ideals = {};
+    onValue(idealsRef, (snapshot) => { ideals = snapshot.val() || {}; });
+
+    onValue(readingsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data || !ideals.Temp) return;
+      const now = new Date();
+      const today = [], yesterday = [], twoDaysAgo = [];
+      let latest = null;
+      const weights = { Temp: 0.2, Humidity: 0.15, Conductivity: 0.15, Lux: 0.15, PH: 0.15, Moisture: 0.2 };
+      Object.values(data).forEach(entry => {
+        const ts = entry.timestamp ? new Date(entry.timestamp) : new Date();
+        const diffDays = Math.floor((now - ts) / (1000 * 60 * 60 * 24));
+        if (diffDays === 0) today.push(entry);
+        else if (diffDays === 1) yesterday.push(entry);
+        else if (diffDays === 2) twoDaysAgo.push(entry);
+        latest = entry;
+      });
+      function computeHealth(entry) {
+        if (!entry) return 0;
+        let health = 0;
+        for (let key in weights) {
+          const val = parseFloat(entry[key]) || 0;
+          const ideal = parseFloat(ideals[key]) || 1;
+          const error = Math.abs((val - ideal) / ideal) * 100;
+          const eff = Math.max(0, 100 - error);
+          health += eff * weights[key];
+        }
+        return health;
+      }
+      function avgHealth(list) {
+        if (list.length === 0) return 0;
+        return list.map(computeHealth).reduce((a,b)=>a+b,0) / list.length;
+      }
+      const healths = [avgHealth(twoDaysAgo).toFixed(1), avgHealth(yesterday).toFixed(1), avgHealth(today).toFixed(1)];
+      barChart.data.datasets[0].data = healths;
+      barChart.update();
+
+      const N = latest.N || 0, P = latest.P || 0, K = latest.K || 0;
+      pieChart.data.datasets[0].data = [N, P, K];
+      pieChart.update();
+
+      const total = N + P + K;
+      const idealRatio = [0.5, 0.1667, 0.3333];
+      const errN = Math.abs((N/total - idealRatio[0]) / idealRatio[0]) * 100;
+      const errP = Math.abs((P/total - idealRatio[1]) / idealRatio[1]) * 100;
+      const errK = Math.abs((K/total - idealRatio[2]) / idealRatio[2]) * 100;
+      const avgError = ((errN + errP + errK) / 3).toFixed(1);
+      document.getElementById("npkError").textContent = `Error from ideal: ${avgError}%`;
+
+      document.getElementById("tempVal").textContent = (latest.Temp ?? "--") + " °C";
+      document.getElementById("humVal").textContent = (latest.Humidity ?? "--") + " %";
+      document.getElementById("luxVal").textContent = (latest.Lux ?? "--") + " %";
+      document.getElementById("condVal").textContent = (latest.Conductivity ?? "--") + " %";
+      document.getElementById("moistVal").textContent = (latest.Moisture ?? "--") + " %";
+      document.getElementById("phVal").textContent = latest.PH ?? "--";
+
+      let errTxt = "";
+      for (let key in weights) {
+        const val = parseFloat(latest[key]) || 0;
+        const ideal = parseFloat(ideals[key]) || 1;
+        const error = Math.abs((val - ideal) / ideal) * 100;
+        errTxt += `${key}: ${error.toFixed(1)}% off\n`;
+      }
+      document.getElementById("errorList").textContent = errTxt.trim();
+    });
+
+    onValue(pumpRef, snap => { document.getElementById("pumpToggle").checked = snap.val() === true; });
+    onValue(mistRef, snap => { document.getElementById("mistToggle").checked = snap.val() === true; });
+    document.getElementById("pumpToggle").addEventListener("change", e => set(pumpRef, e.target.checked));
+    document.getElementById("mistToggle").addEventListener("change", e => set(mistRef, e.target.checked));
+  </script>
 </body>
 </html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>G.R.O.W.T.H. Smart Planter Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: url("4.png") no-repeat center center fixed;
+      background-size: cover;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      min-height: 100vh;
+    }
+
+    h1 {
+      text-align: center;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      font-size: 1.7em;
+      margin-top: 10px;
+    }
+
+    /* Glassy Card Style */
+    .card {
+      backdrop-filter: blur(14px) brightness(1.1);
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 18px;
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      color: #fff;
+    }
+
+    .flex-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .card h2, .card h3 {
+      color: #fff;
+      font-size: 1.1em;
+      margin-bottom: 10px;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    canvas {
+      width: 100%;
+      height: 200px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+
+    /* Make chart text & borders more visible */
+    .chartjs-render-monitor {
+      color: white !important;
+    }
+
+    /* Individual Errors section */
+    #errorList {
+      text-align: left;
+      white-space: pre-line;
+      font-size: 0.9em;
+      line-height: 1.6em;
+    }
+
+    /* System Switches */
+    .switch-row {
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      flex-wrap: wrap;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .switch-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      backdrop-filter: blur(8px);
+      background: rgba(255,255,255,0.2);
+      border-radius: 16px;
+      padding: 10px 18px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .switch-label {
+      font-weight: bold;
+      color: #fff;
+      min-width: 120px;
+      text-align: right;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 56px;
+      height: 30px;
+    }
+    .switch input { display: none; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255,255,255,0.3);
+      transition: 0.3s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+    input.pump:checked + .slider { background-color: #2196f3; }
+    input.mist:checked + .slider { background-color: #f4d03f; }
+    input:checked + .slider:before { transform: translateX(26px); }
+
+    /* Small Live Readings Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 14px;
+      width: 100%;
+      max-width: 800px;
+    }
+    .icon {
+      font-size: 2em;
+      margin-bottom: 8px;
+    }
+    #phVal {
+      background: linear-gradient(to right, red, orange, yellow, green, cyan, blue, violet);
+      -webkit-background-clip: text;
+      color: transparent;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>G.R.O.W.T.H. Smart Planter Dashboard</h1>
+
+  <!-- Top Row -->
+  <div class="flex-row">
+    <div class="card" style="flex: 1; min-width: 300px;">
+      <h2>Plant Health (Last 3 Days)</h2>
+      <canvas id="barChart"></canvas>
+    </div>
+
+    <div class="card" style="flex: 1; min-width: 300px;">
+      <h2>NPK Ratio Pie Graph</h2>
+      <canvas id="pieChart"></canvas>
+      <div id="npkError">Error from ideal: --%</div>
+    </div>
+  </div>
+
+  <!-- Individual Errors -->
+  <div class="card" style="max-width: 800px; width: 100%;">
+    <h3>Individual Variable Errors</h3>
+    <div id="errorList">•                           •
+•                           •
+•                           •
+•</div>
+  </div>
+
+  <!-- Switches -->
+  <div class="switch-row">
+    <div class="switch-block">
+      <span class="switch-label">Switch Pump</span>
+      <label class="switch">
+        <input id="pumpToggle" class="pump" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="switch-block">
+      <span class="switch-label">Switch Fertilizer</span>
+      <label class="switch">
+        <input id="mistToggle" class="mist" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Live Readings -->
+  <div class="grid">
+    <div class="card"><div class="icon">🌡️</div><div id="tempVal">-- °C</div><div>Temperature</div></div>
+    <div class="card"><div class="icon">💧</div><div id="humVal">-- %</div><div>Humidity</div></div>
+    <div class="card"><div class="icon">⚡</div><div id="condVal">-- %</div><div>Conductivity</div></div>
+    <div class="card"><div class="icon">☀️</div><div id="luxVal">-- %</div><div>Light</div></div>
+    <div class="card"><div class="icon">💦</div><div id="moistVal">-- %</div><div>Soil Moisture</div></div>
+    <div class="card"><div class="icon">🌈</div><div id="phVal">--</div><div>pH Level</div></div>
+  </div>
+
+  <!-- Firebase + Chart.js Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getDatabase, ref, onValue, set, query, limitToLast } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD21J-omPyBAXvjDFPANzpFg4a3AWchbFQ",
+      authDomain: "tanim-ashs.firebaseapp.com",
+      databaseURL: "https://tanim-ashs-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "tanim-ashs",
+      storageBucket: "tanim-ashs.firebasestorage.app",
+      messagingSenderId: "459105073919",
+      appId: "1:459105073919:web:ab6cb0346d87233d79aaca",
+      measurementId: "G-Q16E4V78WQ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const readingsRef = query(ref(db, "/TANIM-ASHS/readings"), limitToLast(15));
+    const idealsRef = ref(db, "/TANIM-ASHS/ideals");
+    const pumpRef = ref(db, "/TANIM-ASHS/bools/pump");
+    const mistRef = ref(db, "/TANIM-ASHS/bools/mist");
+
+    const barChart = new Chart(document.getElementById("barChart"), {
+      type: "bar",
+      data: { labels: ["2 Days Ago", "Yesterday", "Today"], datasets: [{ label: "Plant Health (%)", data: [0,0,0], backgroundColor: "#a3f7bf", borderColor: "#ffffff", borderWidth: 2 }] },
+      options: { responsive: true, scales: { y: { beginAtZero: true, max: 100, ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.3)" } }, x: { ticks: { color: "#fff" }, grid: { color: "rgba(255,255,255,0.1)" } } }, plugins: { legend: { labels: { color: "#fff" } } } }
+    });
+
+    const pieChart = new Chart(document.getElementById("pieChart"), {
+      type: "pie",
+      data: { labels: ["N", "P", "K"], datasets: [{ data: [0, 0, 0], backgroundColor: ["#0077b6", "#00b4d8", "#90e0ef"], borderColor: "#fff", borderWidth: 2 }] },
+      options: { responsive: true, plugins: { legend: { labels: { color: "#fff" } } } }
+    });
+
+    let ideals = {};
+
+    onValue(idealsRef, (snapshot) => {
+      ideals = snapshot.val() || {};
+    });
+
+    onValue(readingsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data || !ideals.Temp) return;
+
+      const now = new Date();
+      const today = [], yesterday = [], twoDaysAgo = [];
+      let latest = null;
+
+      const weights = { Temp: 0.2, Humidity: 0.15, Conductivity: 0.15, Lux: 0.15, PH: 0.15, Moisture: 0.2 };
+
+      Object.values(data).forEach(entry => {
+        const ts = entry.timestamp ? new Date(entry.timestamp) : new Date();
+        const diffDays = Math.floor((now - ts) / (1000 * 60 * 60 * 24));
+        if (diffDays === 0) today.push(entry);
+        else if (diffDays === 1) yesterday.push(entry);
+        else if (diffDays === 2) twoDaysAgo.push(entry);
+        latest = entry;
+      });
+
+      function computeHealth(entry) {
+        if (!entry) return 0;
+        let health = 0;
+        for (let key in weights) {
+          const val = parseFloat(entry[key]) || 0;
+          const ideal = parseFloat(ideals[key]) || 1;
+          const error = Math.abs((val - ideal) / ideal) * 100;
+          const eff = Math.max(0, 100 - error);
+          health += eff * weights[key];
+        }
+        return health;
+      }
+
+      function avgHealth(list) {
+        if (list.length === 0) return 0;
+        return list.map(computeHealth).reduce((a,b)=>a+b,0) / list.length;
+      }
+
+      const healths = [
+        avgHealth(twoDaysAgo).toFixed(1),
+        avgHealth(yesterday).toFixed(1),
+        avgHealth(today).toFixed(1)
+      ];
+
+      barChart.data.datasets[0].data = healths;
+      barChart.update();
+
+      const N = latest.N || 0, P = latest.P || 0, K = latest.K || 0;
+      pieChart.data.datasets[0].data = [N, P, K];
+      pieChart.update();
+
+      const total = N + P + K;
+      const nRatio = total ? N / total : 0;
+      const pRatio = total ? P / total : 0;
+      const kRatio = total ? K / total : 0;
+      const idealRatio = [0.5, 0.1667, 0.3333];
+      const errN = Math.abs((nRatio - idealRatio[0]) / idealRatio[0]) * 100;
+      const errP = Math.abs((pRatio - idealRatio[1]) / idealRatio[1]) * 100;
+      const errK = Math.abs((kRatio - idealRatio[2]) / idealRatio[2]) * 100;
+      const avgError = ((errN + errP + errK) / 3).toFixed(1);
+
+      document.getElementById("npkError").textContent = `Error from ideal: ${avgError}%`;
+
+      document.getElementById("tempVal").textContent = (latest.Temp ?? "--") + " °C";
+      document.getElementById("humVal").textContent = (latest.Humidity ?? "--") + " %";
+      document.getElementById("luxVal").textContent = (latest.Lux ?? "--") + " %";
+      document.getElementById("condVal").textContent = (latest.Conductivity ?? "--") + " %";
+      document.getElementById("moistVal").textContent = (latest.Moisture ?? "--") + " %";
+      document.getElementById("phVal").textContent = latest.PH ?? "--";
+
+      let errTxt = "";
+      for (let key in weights) {
+        const val = parseFloat(latest[key]) || 0;
+        const ideal = parseFloat(ideals[key]) || 1;
+        const error = Math.abs((val - ideal) / ideal) * 100;
+        errTxt += `* ${key}: ${error.toFixed(1)}% off\n`;
+      }
+      document.getElementById("errorList").textContent = errTxt.trim();
+    });
+
+    onValue(pumpRef, snap => {
+      document.getElementById("pumpToggle").checked = snap.val() === true;
+    });
+
+    onValue(mistRef, snap => {
+      document.getElementById("mistToggle").checked = snap.val() === true;
+    });
+
+    document.getElementById("pumpToggle").addEventListener("change", e => set(pumpRef, e.target.checked));
+    document.getElementById("mistToggle").addEventListener("change", e => set(mistRef, e.target.checked));
+  </script>
+</body>
+</html>

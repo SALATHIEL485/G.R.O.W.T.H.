@@ -25,7 +25,7 @@
             content: "";
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("bg.png") no-repeat center center / cover;
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("bg.png") no-repeat center center / cover;
             z-index: -1;
         }
 
@@ -40,8 +40,6 @@
             border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .flex-row { display: flex; flex-wrap: wrap; gap: 20px; width: 100%; max-width: 1000px; }
-        
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -53,14 +51,23 @@
         .reading-val { font-size: 1.8em; font-weight: 600; color: #2ecc71; margin: 5px 0; }
         .unit { font-size: 0.5em; color: #aaa; margin-left: 4px; }
 
-        .switch-row { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+        .flex-row { display: flex; flex-wrap: wrap; gap: 20px; width: 100%; max-width: 1000px; }
+        
+        button {
+            background: #27ae60; color: white; border: none; padding: 15px 24px;
+            border-radius: 10px; cursor: pointer; font-weight: 600; width: 100%;
+            transition: 0.3s;
+        }
+        button:hover { background: #2ecc71; }
+        
         .switch-block {
-            background: rgba(255,255,255,0.1);
-            padding: 12px 20px;
-            border-radius: 50px;
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 10px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 15px;
         }
 
         /* Toggle */
@@ -76,45 +83,36 @@
         }
         input:checked + .slider { background-color: #2ecc71; }
         input:checked + .slider:before { transform: translateX(26px); }
-
-        button {
-            background: #27ae60; color: white; border: none; padding: 12px 24px;
-            border-radius: 10px; cursor: pointer; font-weight: 600; width: 100%;
-        }
-        #infoBar { font-size: 0.9em; opacity: 0.8; }
     </style>
 </head>
 
 <body>
     <h1>🌱 G.R.O.W.T.H. Dashboard</h1>
-    <div id="infoBar">Initializing...</div>
+    <div id="infoBar">Connecting to Sensors...</div>
 
     <div class="grid">
-        <div class="card"><div style="font-size:1.5em">🌡️</div><div id="tempval" class="reading-val">--</div><div>Temperature</div></div>
-        <div class="card"><div style="font-size:1.5em">💦</div><div id="moistureval" class="reading-val">--</div><div>Soil Moisture</div></div>
-        <div class="card"><div style="font-size:1.5em">🌈</div><div id="phval" class="reading-val">--</div><div>pH Level</div></div>
-        <div class="card"><div style="font-size:1.5em">☀️</div><div id="luxval" class="reading-val">--</div><div>Light (Lux)</div></div>
+        <div class="card"><div>🌡️ Temp</div><div id="tempval" class="reading-val">--</div></div>
+        <div class="card"><div>💦 Moisture</div><div id="moistureval" class="reading-val">--</div></div>
+        <div class="card"><div>🌈 pH Level</div><div id="phval" class="reading-val">--</div></div>
+        <div class="card"><div>☀️ Light</div><div id="luxval" class="reading-val">--</div></div>
     </div>
 
     <div class="flex-row">
-        <div class="card" style="flex: 1;">
-            <h3>Soil Nutrients (NPK)</h3>
+        <div class="card" style="flex: 1.2;">
+            <h3>Nutrient Levels (NPK)</h3>
             <canvas id="pieChart"></canvas>
         </div>
         <div class="card" style="flex: 1;">
-            <h3>System Controls</h3>
-            <div class="switch-row">
-                <div class="switch-block">
-                    <span>Water Pump</span>
-                    <label class="switch"><input id="pumpToggle" type="checkbox"><span class="slider"></span></label>
-                </div>
-                <div class="switch-block">
-                    <span>Fertilizer</span>
-                    <label class="switch"><input id="fertToggle" type="checkbox"><span class="slider"></span></label>
-                </div>
+            <h3>Quick Actions</h3>
+            <div class="switch-block">
+                <span>Water Pump</span>
+                <label class="switch"><input id="pumpToggle" type="checkbox"><span class="slider"></span></label>
             </div>
-            <br>
-            <button id="exportBtn">📥 Download Excel (.CSV)</button>
+            <div class="switch-block">
+                <span>Fertilizer</span>
+                <label class="switch"><input id="fertToggle" type="checkbox"><span class="slider"></span></label>
+            </div>
+            <button id="exportBtn">📥 Download History (.CSV)</button>
         </div>
     </div>
 
@@ -135,40 +133,45 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const readingsRef = query(ref(db, "/readings"), limitToLast(50));
+const readingsRef = query(ref(db, "/readings"), limitToLast(20));
 const pumpRef = ref(db, "/bools/pump");
 const fertRef = ref(db, "/bools/fert");
 
-// Pie Chart for NPK
 const pieChart = new Chart(document.getElementById("pieChart"), {
     type: "doughnut",
     data: {
-        labels: ["Nitrogen (N)", "Phosphorus (P)", "Potassium (K)"],
+        labels: ["N", "P", "K"],
         datasets: [{
             data: [0, 0, 0],
-            backgroundColor: ["#ff6384", "#36a2eb", "#cc65fe"],
-            borderWidth: 0
+            backgroundColor: ["#ff6384", "#36a2eb", "#ffce56"],
+            borderColor: "transparent"
         }]
     },
     options: { plugins: { legend: { labels: { color: "#fff" } } } }
 });
 
+// Real-time Update Logic
 onValue(readingsRef, (snapshot) => {
+    if (!snapshot.exists()) return;
     const data = snapshot.val();
-    if (!data) return;
+    
+    // Transform object to array and sort by timestamp
+    const entries = Object.entries(data).map(([key, value]) => ({
+        id: key,
+        ...value
+    })).sort((a, b) => b.timestamp - a.timestamp);
 
-    // Sort to get the absolute latest reading
-    const entries = Object.values(data).sort((a, b) => b.timestamp - a.timestamp);
-    const latest = entries[0];
+    const latest = entries[0]; // THIS IS THE LAST READING
 
-    // Update Display
-    document.getElementById("tempval").innerHTML = `${latest.Temp}<span class="unit">°C</span>`;
-    document.getElementById("moistureval").innerHTML = `${latest.Moisture}<span class="unit">%</span>`;
-    document.getElementById("phval").innerHTML = latest.PH;
-    document.getElementById("luxval").innerHTML = `${latest.Lux}<span class="unit">lx</span>`;
+    // Update UI
+    document.getElementById("tempval").innerHTML = `${latest.Temp || 0}<span class="unit">°C</span>`;
+    document.getElementById("moistureval").innerHTML = `${latest.Moisture || 0}<span class="unit">%</span>`;
+    document.getElementById("phval").textContent = latest.PH || 0;
+    document.getElementById("luxval").innerHTML = `${latest.Lux || 0}<span class="unit">lx</span>`;
+    document.getElementById("infoBar").textContent = `Last sync: ${new Date(latest.timestamp).toLocaleTimeString()}`;
 
-    // Update NPK Chart
-    pieChart.data.datasets[0].data = [latest.N, latest.P, latest.K];
+    // Update Chart
+    pieChart.data.datasets[0].data = [latest.N || 0, latest.P || 0, latest.K || 0];
     pieChart.update();
 });
 
@@ -178,42 +181,48 @@ onValue(fertRef, s => document.getElementById("fertToggle").checked = s.val());
 document.getElementById("pumpToggle").onchange = e => set(pumpRef, e.target.checked);
 document.getElementById("fertToggle").onchange = e => set(fertRef, e.target.checked);
 
-// FIXED CSV EXPORT - Strict Column Mapping
+// Fixed Export Logic
 document.getElementById("exportBtn").onclick = async () => {
-    const snapshot = await get(ref(db, "/readings"));
-    if (!snapshot.exists()) return;
+    try {
+        const snapshot = await get(ref(db, "/readings"));
+        if (!snapshot.exists()) {
+            alert("No data found to download.");
+            return;
+        }
 
-    const data = snapshot.val();
-    const headers = ["Date & Time", "Temp (°C)", "Moisture (%)", "pH", "Lux", "N", "P", "K", "Mode"];
-    
-    // Map data to specific indices to ensure they stay in the right columns
-    const rows = Object.values(data).map(r => [
-        new Date(r.timestamp).toLocaleString(),
-        r.Temp ?? 0,
-        r.Moisture ?? 0,
-        r.PH ?? 0,
-        r.Lux ?? 0,
-        r.N ?? 0,
-        r.P ?? 0,
-        r.K ?? 0,
-        r.Mode ?? "N/A"
-    ]);
+        const data = snapshot.val();
+        const headers = ["Timestamp", "Temp", "Moisture", "PH", "Lux", "N", "P", "K", "Mode"];
+        
+        const rows = Object.values(data).map(r => {
+            return [
+                r.timestamp ? new Date(r.timestamp).toLocaleString().replace(/,/g, "") : "N/A",
+                r.Temp || 0,
+                r.Moisture || 0,
+                r.PH || 0,
+                r.Lux || 0,
+                r.N || 0,
+                r.P || 0,
+                r.K || 0,
+                r.Mode || "AUT"
+            ].join(",");
+        });
 
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Planter_Data_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
+        const csvString = [headers.join(","), ...rows].join("\n");
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `planter_log_${Date.now()}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (err) {
+        console.error(err);
+        alert("Download failed. Check console for details.");
+    }
 };
-
-async function updateInfoBar() {
-    const now = new Date().toLocaleString();
-    document.getElementById("infoBar").textContent = `Last Updated: ${now}`;
-}
-setInterval(updateInfoBar, 10000);
-updateInfoBar();
 </script>
 </body>
 </html>

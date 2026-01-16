@@ -3,145 +3,104 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🌱 G.R.O.W.T.H. Smart Planter</title>
+    <title>🌱 G.R.O.W.T.H. Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: "Poppins", sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; min-height: 100vh; background: #1a1a1a; color: #fff; }
-        body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("bg.png") no-repeat center center / cover; z-index: -1; }
-        .card { backdrop-filter: blur(15px); background: rgba(255,255,255,0.1); border-radius: 20px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; width: 100%; max-width: 1000px; }
-        .reading-val { font-size: 1.8em; font-weight: 600; color: #2ecc71; margin: 5px 0; }
-        .unit { font-size: 0.5em; color: #aaa; margin-left: 4px; }
-        .flex-row { display: flex; flex-wrap: wrap; gap: 20px; width: 100%; max-width: 1000px; }
-        button { background: #27ae60; color: white; border: none; padding: 15px 24px; border-radius: 10px; cursor: pointer; font-weight: 600; width: 100%; transition: 0.3s; margin-top: 10px; }
-        button:hover { background: #2ecc71; }
-        #infoBar { font-size: 0.9em; opacity: 0.8; }
-        .status-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; margin-top: 10px; display: flex; justify-content: space-between; }
+        body { font-family: "Poppins", sans-serif; margin: 0; padding: 20px; background: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; width: 100%; max-width: 1000px; margin-top: 20px; }
+        .card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        .val { font-size: 2em; font-weight: 600; color: #2ecc71; display: block; }
+        .label { font-size: 0.9em; color: #888; text-transform: uppercase; }
+        .chart-container { width: 100%; max-width: 500px; margin-top: 30px; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 20px; }
+        button { background: #27ae60; color: white; border: none; padding: 15px 30px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 20px; width: 100%; max-width: 400px; }
+        #status { font-size: 0.8em; margin-bottom: 10px; color: #00d4ff; }
     </style>
 </head>
 <body>
-    <h1>🌱 G.R.O.W.T.H. Dashboard</h1>
-    <div id="infoBar">Checking Database...</div>
+
+    <h1>🌱 Smart Planter Live</h1>
+    <div id="status">Syncing with Firebase...</div>
 
     <div class="grid">
-        <div class="card"><div>🌡️ Temp</div><div id="tempval" class="reading-val">--</div></div>
-        <div class="card"><div>💦 Moisture</div><div id="moistureval" class="reading-val">--</div></div>
-        <div class="card"><div>🌈 pH Level</div><div id="phval" class="reading-val">--</div></div>
-        <div class="card"><div>☀️ Light</div><div id="luxval" class="reading-val">--</div></div>
+        <div class="card"><span class="label">Temperature</span><span id="t" class="val">--</span></div>
+        <div class="card"><span class="label">Moisture</span><span id="m" class="val">--</span></div>
+        <div class="card"><span class="label">Soil pH</span><span id="p" class="val">--</span></div>
+        <div class="card"><span class="label">Light (Lux)</span><span id="l" class="val">--</span></div>
     </div>
 
-    <div class="flex-row">
-        <div class="card" style="flex: 1.2;">
-            <h3>Nutrient Levels (NPK)</h3>
-            <canvas id="pieChart"></canvas>
-        </div>
-        <div class="card" style="flex: 1;">
-            <h3>System Status</h3>
-            <div class="status-box"><span>Mode:</span><b id="modeStat">--</b></div>
-            <div class="status-box"><span>Pump:</span><b id="pumpStat">--</b></div>
-            <div class="status-box"><span>Fertilizer:</span><b id="fertStat">--</b></div>
-            <button id="exportBtn">📥 Download CSV Log</button>
-        </div>
+    <div class="chart-container">
+        <canvas id="npkChart"></canvas>
     </div>
+
+    <button id="dl">📥 Download CSV Log</button>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyD21J-omPyBAXvjDFPANzpFg4a3AWchbFQ",
-    authDomain: "tanim-ashs.firebaseapp.com",
+const conf = {
     databaseURL: "https://tanim-ashs-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "tanim-ashs",
-    storageBucket: "tanim-ashs.firebasestorage.app",
-    messagingSenderId: "459105073919",
-    appId: "1:459105073919:web:ab6cb0346d87233d79aaca"
+    projectId: "tanim-ashs"
 };
 
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(conf);
 const db = getDatabase(app);
+const rRef = ref(db, "readings");
 
-// Target the "readings" node directly
-const readingsRef = ref(db, "readings");
-
-const pieChart = new Chart(document.getElementById("pieChart"), {
-    type: "doughnut",
+// Chart Setup
+const ctx = document.getElementById('npkChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'bar',
     data: {
-        labels: ["N", "P", "K"],
-        datasets: [{ data: [0, 0, 0], backgroundColor: ["#ff6384", "#36a2eb", "#ffce56"], borderColor: "transparent" }]
+        labels: ['Nitrogen', 'Phosphorus', 'Potassium'],
+        datasets: [{ label: 'Soil Nutrients', data: [0, 0, 0], backgroundColor: ['#ff5f6d', '#ffc371', '#2193b0'] }]
     },
-    options: { plugins: { legend: { labels: { color: "#fff" } } } }
+    options: { scales: { y: { beginAtZero: true, grid: { color: '#333' } } }, plugins: { legend: { display: false } } }
 });
 
-// Update Dashboard
-onValue(readingsRef, (snapshot) => {
-    if (!snapshot.exists()) {
-        document.getElementById("infoBar").textContent = "No data in database.";
-        return;
-    }
+// REAL-TIME DATA LOGIC
+onValue(rRef, (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.val();
     
-    const data = snapshot.val();
+    // Get all entry keys and find the latest one
     const keys = Object.keys(data);
-    // Get the very last entry
     const latest = data[keys[keys.length - 1]];
 
-    // UI Mapping
-    document.getElementById("tempval").innerHTML = (latest.Temp || 0) + '<span class="unit">°C</span>';
-    document.getElementById("moistureval").innerHTML = (latest.Moisture || 0) + '<span class="unit">%</span>';
-    document.getElementById("phval").textContent = latest.PH || 0;
-    document.getElementById("luxval").innerHTML = (latest.Lux || 0) + '<span class="unit">lx</span>';
-    
-    document.getElementById("modeStat").textContent = latest.Mode || "N/A";
-    document.getElementById("pumpStat").textContent = latest.Pump ? "ON" : "OFF";
-    document.getElementById("fertStat").textContent = latest.Fert ? "ON" : "OFF";
-    
-    const time = latest.timestamp ? new Date(latest.timestamp).toLocaleTimeString() : "N/A";
-    document.getElementById("infoBar").textContent = "Last Data Received: " + time;
+    // Update Text
+    document.getElementById('t').innerText = latest.Temp + "°C";
+    document.getElementById('m').innerText = latest.Moisture + "%";
+    document.getElementById('p').innerText = latest.PH;
+    document.getElementById('l').innerText = latest.Lux;
+    document.getElementById('status').innerText = "Last Update: " + new Date(latest.timestamp).toLocaleTimeString();
 
-    pieChart.data.datasets[0].data = [latest.N || 0, latest.P || 0, latest.K || 0];
-    pieChart.update();
+    // Update Chart
+    chart.data.datasets[0].data = [latest.N, latest.P, latest.K];
+    chart.update();
 });
 
-// CSV Export - Restored to your original working method
-document.getElementById("exportBtn").onclick = async () => {
-    const snapshot = await get(readingsRef);
-    if (!snapshot.exists()) {
-        alert("No data to download");
-        return;
-    }
-
-    const data = snapshot.val();
-    const rows = [["Timestamp", "Temp", "Moisture", "PH", "Lux", "N", "P", "K", "Mode", "Pump", "Fert"]];
+// DOWNLOAD LOGIC
+document.getElementById('dl').onclick = async () => {
+    const snap = await get(rRef);
+    if (!snap.exists()) return;
     
-    for (let id in data) {
-        const r = data[id];
-        const dateStr = r.timestamp ? new Date(r.timestamp).toLocaleString().replace(/,/g, "") : "N/A";
-        rows.push([
-            dateStr,
-            r.Temp || 0,
-            r.Moisture || 0,
-            r.PH || 0,
-            r.Lux || 0,
-            r.N || 0,
-            r.P || 0,
-            r.K || 0,
-            r.Mode || "N/A",
-            r.Pump || false,
-            r.Fert || false
-        ]);
-    }
+    const data = snap.val();
+    const headers = "Timestamp,Temp,Moisture,PH,Lux,N,P,K,Mode,Pump,Fert\n";
+    
+    // Convert object to rows
+    let rows = "";
+    Object.values(data).forEach(r => {
+        const time = new Date(r.timestamp).toLocaleString().replace(/,/g, "");
+        rows += `${time},${r.Temp},${r.Moisture},${r.PH},${r.Lux},${r.N},${r.P},${r.K},${r.Mode},${r.Pump},${r.Fert}\n`;
+    });
 
-    const csvContent = rows.map(r => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([headers + rows], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = "planter_log.csv";
-    document.body.appendChild(a);
+    a.download = "planter_data.csv";
     a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
 };
 </script>
 </body>
